@@ -30,8 +30,9 @@
 #include <vector>
 
 #include <opencog/atomspace/AtomSpace.h>
-#include <opencog/server/Module.h>
-#include <opencog/server/CogServer.h>
+#include <opencog/attentionbank/AttentionBank.h>
+#include <opencog/cogserver/server/Module.h>
+#include <opencog/cogserver/server/CogServer.h>
 #include <opencog/util/Cover_Tree.h>
 #include "CoverTreePoint.h"
 
@@ -47,6 +48,7 @@ namespace opencog
     class DimEmbedModule : public Module
     {
     private:
+        AttentionBank* _bank;
         typedef std::map<Handle, std::vector<double> > AtomEmbedding;
         typedef std::map<Type, HandleSeq> PivotMap;
         typedef std::map<Type, std::pair<HandleSeq, HandleSeq> > AsymPivotMap;
@@ -65,8 +67,9 @@ namespace opencog
             ClusterSeq; //the vector of doubles is the centroid of the cluster
         
         AtomSpace* as;
-        boost::signals::connection removedAtomConnection;
-        boost::signals::connection addedAtomConnection;
+        int removedAtomConnection;
+        int addedAtomConnection;
+        int tvChangedConnection;
 
         AtomEmbedMap atomMaps;
         AsymAtomEmbedMap asymAtomMaps;
@@ -133,11 +136,13 @@ namespace opencog
          * @param linkType Type of link (which embedding to alter)
          */
         void addLink(Handle h, Type linkType);
+
         /**
          * For adding symmetric links after the atomspace has been embedded. See
          * addLink.
          */
         void symAddLink(Handle h, Type linkType);
+
         /**
          * For adding asymmetric links after the atomspace has been embedded.
          * See addLink.
@@ -317,6 +322,8 @@ namespace opencog
          * atom is a link.
          */
         void atomRemoveSignal(AtomPtr h);
+
+        void TVChangedSignal(Handle, TruthValuePtr, TruthValuePtr);
     }; // class
 } //namespace
 

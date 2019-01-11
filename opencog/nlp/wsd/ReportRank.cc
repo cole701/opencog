@@ -10,10 +10,10 @@
 
 #include <stdio.h>
 
-#include <opencog/atomspace/types.h>
-#include <opencog/atomspace/Node.h>
-#include <opencog/atomspace/CountTruthValue.h>
-#include <opencog/atomspace/TruthValue.h>
+#include <opencog/atoms/atom_types/types.h>
+#include <opencog/atoms/base/Node.h>
+#include <opencog/atoms/truthvalue/CountTruthValue.h>
+#include <opencog/atoms/truthvalue/TruthValue.h>
 #include <opencog/nlp/wsd/ForeachWord.h>
 #include <opencog/util/platform.h>
 
@@ -33,7 +33,7 @@ ReportRank::~ReportRank()
 /**
  * For each parse of the sentence, make a report.
  */
-void ReportRank::report_sentence(Handle h)
+void ReportRank::report_sentence(const Handle& h)
 {
 	parse_cnt = 0;
 	foreach_parse(h, &ReportRank::report_parse_f, this);
@@ -63,7 +63,7 @@ void ReportRank::report_document(const std::deque<Handle> &parse_list)
 
 	// Iterate over all the parses in the document.
 	std::deque<Handle>::const_iterator i;
-	for (i = parse_list.begin(); i != parse_list.end(); i++)
+	for (i = parse_list.begin(); i != parse_list.end(); ++i)
 	{
 		Handle h = *i;
 		foreach_word_instance(h, &ReportRank::count_word, this);
@@ -79,7 +79,7 @@ void ReportRank::report_document(const std::deque<Handle> &parse_list)
 	double average = normalization / sense_count;
 	normalization = 1.0 / average;
 
-	for (i = parse_list.begin(); i != parse_list.end(); i++)
+	for (i = parse_list.begin(); i != parse_list.end(); ++i)
 	{
 		Handle h = *i;
 		foreach_word_instance(h, &ReportRank::renorm_word, this);
@@ -94,7 +94,7 @@ void ReportRank::report_document(const std::deque<Handle> &parse_list)
 /**
  * Same as report_document, but done only for one parse
  */
-void ReportRank::report_parse(Handle h)
+void ReportRank::report_parse(const Handle& h)
 {
 #ifdef DEBUG
 	printf ("; ReportRank: Sentence %d:\n", parse_cnt);
@@ -113,20 +113,20 @@ void ReportRank::report_parse(Handle h)
 	foreach_word_instance(h, &ReportRank::renorm_word, this);
 }
 
-bool ReportRank::report_parse_f(Handle h)
+bool ReportRank::report_parse_f(const Handle& h)
 {
 	report_parse(h);
 	return false;
 }
 
-bool ReportRank::count_word(Handle h)
+bool ReportRank::count_word(const Handle& h)
 {
 	word_count ++;
 	foreach_word_sense_of_inst(h, &ReportRank::count_sense, this);
 	return false;
 }
 
-bool ReportRank::renorm_word(Handle h)
+bool ReportRank::renorm_word(const Handle& h)
 {
 #ifdef HISCORE_DEBUG
 	hi_score = -1e10;
@@ -136,25 +136,25 @@ bool ReportRank::renorm_word(Handle h)
 
 #ifdef HISCORE_DEBUG
 	Handle wh = get_dict_word_of_word_instance(h);
-	const char *wd = wh->getName().c_str();
+	const char *wd = wh->get_name().c_str();
 	printf("; hi score=%g word = %s sense=%s\n", hi_score, wd, hi_sense);
 	fflush (stdout);
 #endif
 	return false;
 }
 
-bool ReportRank::count_sense(Handle word_sense_h,
-                             Handle sense_link_h)
+bool ReportRank::count_sense(const Handle& word_sense_h,
+                             const Handle& sense_link_h)
 {
-	normalization += sense_link_h->getTruthValue()->getCount();
+	normalization += sense_link_h->getTruthValue()->get_count();
 	sense_count += 1.0;
 	return false;
 }
 
-bool ReportRank::renorm_sense(Handle word_sense_h,
-                              Handle sense_link_h)
+bool ReportRank::renorm_sense(const Handle& word_sense_h,
+                              const Handle& sense_link_h)
 {
-	double score = sense_link_h->getTruthValue()->getCount();
+	double score = sense_link_h->getTruthValue()->get_count();
 
 	score *= normalization;
 	score -= 1.0;
@@ -173,14 +173,14 @@ bool ReportRank::renorm_sense(Handle word_sense_h,
 
 #ifdef DEBUG
 	if (hi_score < score) {
-		hi_sense = NodeCast(word_sense_h)->getName().c_str();
+		hi_sense = word_sense_h->get_name().c_str();
 		hi_score = score;
 	}
 	if (0.0 < score) {
 		choosen_sense_count += 1.0;
 	
 #if 0
-printf ("duu word sense=%s score=%f\n", NodePtr(word_sense_h)->getName().c_str(), score);
+printf ("duu word sense=%s score=%f\n", word_sense_h->get_name().c_str(), score);
 fflush (stdout);
 #endif
 	}

@@ -1,11 +1,42 @@
-from scipy.stats import t
-from spatiotemporal.temporal_events.generic import TemporalEventPiecewiseLinear, TemporalInstance
+from math import sqrt, fabs
+from numpy import PINF as POSITIVE_INFINITY
+from scipy.stats import t, uniform
+from spatiotemporal.temporal_events import TemporalEvent, BaseRelationFormula
 from spatiotemporal.unix_time import UnixTime, random_time
+from utility.functions import FUNCTION_ONE, FunctionLinear, FunctionComposite, FUNCTION_ZERO, almost_equals
 
 __author__ = 'keyvan'
 
 
-class TemporalEventTrapezium(TemporalEventPiecewiseLinear):
+class RelationFormulaTrapezium(BaseRelationFormula):
+    def compare(self, dist_1, dist_2):
+        a_1, b_1 = self.bounds_of(dist_1)
+        a_2, b_2 = self.bounds_of(dist_2)
+
+        dist_1_duration, dist_2_duration = self.duration_of(dist_1), self.duration_of(dist_2)
+        dist_1_uniform_probability = 1.0 / dist_1_duration
+        dist_2_uniform_probability = 1.0 / dist_2_duration
+
+        same_a = max(a_1, a_2)
+        same_b = min(b_1, b_2)
+
+        same = 0
+        if same_a < same_b:
+            same = sqrt(dist_1_uniform_probability * dist_2_uniform_probability) * (same_b - same_a)
+
+        l = fabs(dist_1_duration - dist_2_duration)
+
+        dictionary_bounds_function = {(l / 2.0, POSITIVE_INFINITY): FUNCTION_ONE}
+        if l > 0:
+            dictionary_bounds_function[(-l / 2.0, l / 2.0)] = FunctionLinear(x_0=- l / 2.0, y_0=0, x_1=l / 2.0, y_1=1)
+        proportion_function = FunctionComposite(dictionary_bounds_function, function_undefined=FUNCTION_ZERO)
+
+        non_same_portion = 1.0 - same
+        after = proportion_function(dist_1.mean() - dist_2.mean()) * non_same_portion
+        return 1 - same - after, same, after
+
+
+class TemporalEventTrapezium(TemporalEvent):
     beginning_factor = 5
     ending_factor = 5
 
@@ -19,6 +50,8 @@ class TemporalEventTrapezium(TemporalEventPiecewiseLinear):
             assert (beginning_factor, ending_factor) == (None, None), "PiecewiseTemporalEvent() only accepts " \
                                                                       "either 'beginning_factor' and 'ending_factor' " \
                                                                       "or 'beginning' and 'ending'"
+            if not a < beginning and ending < b and (beginning < ending or almost_equals(beginning, ending)):
+                raise AttributeError("The inputs should satisfy 'a < beginning <= ending < b' relation")
 
         if beginning_factor is not None:
             assert beginning_factor > 0
@@ -27,10 +60,7 @@ class TemporalEventTrapezium(TemporalEventPiecewiseLinear):
             assert ending_factor > 0
             self.ending_factor = ending_factor
 
-        if (beginning, ending) != (None, None):
-            beginning = UnixTime(beginning)
-            ending = UnixTime(ending)
-        else:
+        if (beginning, ending) == (None, None):
             beginning, ending = 0, 0
             while not a < beginning < ending < b:
                 beginning = random_time(
@@ -54,7 +84,8 @@ class TemporalEventTrapezium(TemporalEventPiecewiseLinear):
                         float(b - a) / self.ending_factor
                     )
                 )
-        TemporalEventPiecewiseLinear.__init__(self, {a: 0, beginning: 1}, {ending: 1, b: 0})
+        TemporalEvent.__init__(self, uniform(loc=a, scale=UnixTime(beginning - a)),
+                               uniform(loc=ending, scale=UnixTime(b - ending)), bins=4)
 
 
 def generate_random_events(size=20):
@@ -72,28 +103,3 @@ def generate_random_events(size=20):
 
     return events
 
-
-if __name__ == '__main__':
-    import time
-
-    #event = TemporalEventTrapezium(1, 20)
-    #
-    #event.plot()
-    #event.distribution_beginning.plot()
-    #plt = event.distribution_ending.plot()
-    #plt.ylim(ymin=0, ymax=1.1)
-    #plt.show()
-
-    events = generate_random_events(1)
-    #events = generate_random_events(500)
-
-    start = time.time()
-
-    for event in events:
-        plt = event.plot()
-        plt = event.instance().plot()
-
-    print 'Performance:', time.time() - start, 'seconds'
-
-    plt.ylim(ymin=0, ymax=1.1)
-    plt.show()

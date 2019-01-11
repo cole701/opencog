@@ -11,7 +11,7 @@
 
 #include <string>
 
-#include <opencog/atomspace/Atom.h>
+#include <opencog/atoms/base/Atom.h>
 #include <opencog/atomspace/AtomSpace.h>
 #include <opencog/nlp/wsd/MihalceaEdge.h>
 #include <opencog/nlp/wsd/MihalceaLabel.h>
@@ -41,14 +41,14 @@ class Mihalcea
 		Handle previous_parse;
 		std::deque<Handle> parse_list;
 		std::deque<Handle> short_list;
-		bool process_sentence_list(Handle);
-		bool process_sentence(Handle);
+		bool process_sentence_list(const Handle&);
+		bool process_sentence(const Handle&);
 
 	public:
 		Mihalcea(void);
 		~Mihalcea();
 		void set_atom_space(AtomSpace *as);
-		void process_document(Handle);
+		void process_document(const Handle&);
 };
 
 } // namespace opencog

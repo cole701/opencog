@@ -11,17 +11,16 @@
 
 #include <set>
 
-#include <opencog/atomspace/Atom.h>
+#include <opencog/atoms/base/Atom.h>
 
 namespace opencog {
 
 class EdgeUtils
 {
 	public:
-		std::set<Handle> words;
-		bool look_at_relation(const std::string &, Handle, Handle);
-		bool look_at_word(Handle);
-
+		HandleSet words;
+		bool look_at_relation(const std::string &, const Handle&, const Handle&);
+		bool look_at_word(const Handle&);
 };
 
 }

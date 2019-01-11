@@ -15,7 +15,7 @@
 
 #ifdef HAVE_SQL_STORAGE
 
-#include <opencog/atomspace/SimpleTruthValue.h>
+#include <opencog/atoms/truthvalue/SimpleTruthValue.h>
 #include <opencog/nlp/wsd/SenseSimilarity.h>
 #include <opencog/persist/sql/odbcxx.h>
 
@@ -36,7 +36,7 @@ public:
     SenseSimilaritySQL(AtomSpace* _as);
     virtual ~SenseSimilaritySQL();
     
-    virtual SimpleTruthValuePtr similarity(Handle, Handle);
+    virtual SimpleTruthValuePtr similarity(const Handle&, const Handle&);
 };
 
 } // namespace opencog

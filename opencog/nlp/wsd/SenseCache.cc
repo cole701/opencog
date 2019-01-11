@@ -12,9 +12,8 @@
 #include <math.h>
 
 #include <opencog/util/platform.h>
-#include <opencog/atomspace/ForeachChaseLink.h>
-#include <opencog/atomspace/Node.h>
-#include <opencog/atomspace/SimpleTruthValue.h>
+#include <opencog/atomutils/ForeachChaseLink.h>
+#include <opencog/atoms/base/Node.h>
 
 using namespace opencog;
 
@@ -45,7 +44,8 @@ void SenseCache::set_atom_space(AtomSpace *as)
  *       WordSenseNode "bark_sense_23"
  *       WordSenseNode "covering_sense_42"
  */
-TruthValuePtr SenseCache::similarity(Handle sense_a, Handle sense_b)
+TruthValuePtr SenseCache::similarity(const Handle& sense_a,
+                                     const Handle& sense_b)
 {
 	match_sense = sense_b;
 
@@ -53,10 +53,10 @@ TruthValuePtr SenseCache::similarity(Handle sense_a, Handle sense_b)
 	                         &SenseCache::find_sense, this);
 
 	if (!found) return TruthValue::DEFAULT_TV();
-	return atom_space->getTV(found_link);
+	return found_link->getTruthValue();
 }
 
-bool SenseCache::find_sense(Handle sense, Handle link)
+bool SenseCache::find_sense(const Handle& sense, const Handle& link)
 {
 	if (sense != match_sense) return false;
 	found_link = link;
@@ -70,10 +70,11 @@ bool SenseCache::find_sense(Handle sense, Handle link)
  * senses.  This link is *not* a part of any atom space; it must be
  * aded to an atom space if desired.
  */
-void SenseCache::set_similarity(Handle sense_a, Handle sense_b, TruthValuePtr tv)
+void SenseCache::set_similarity(const Handle& sense_a,
+                                const Handle& sense_b, TruthValuePtr tv)
 {
 	// Create a link connecting the two senses.
-	atom_space->addLink(SIMILARITY_LINK, sense_a, sense_b, tv);
+	atom_space->add_link(SIMILARITY_LINK, sense_a, sense_b)->setTruthValue(tv);
 }
 
 /* ============================== END OF FILE ====================== */

@@ -10,7 +10,7 @@
 #ifndef _OPENCOG_PARSE_RANK_H
 #define _OPENCOG_PARSE_RANK_H
 
-#include <opencog/atomspace/Handle.h>
+#include <opencog/atoms/base/Handle.h>
 
 namespace opencog {
 
@@ -19,12 +19,12 @@ class ParseRank
 	private:
 		Handle top;
 		double top_rank;
-		bool lookat_parse(Handle);
+		bool lookat_parse(const Handle&);
 
 	public:
 		ParseRank(void);
 		~ParseRank();
-		Handle get_top_ranked_parse(Handle);
+		Handle get_top_ranked_parse(const Handle&);
 };
 
 } // namespace opencog

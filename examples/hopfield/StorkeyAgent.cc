@@ -1,5 +1,5 @@
 /*
- * opencog/dynamics/attention/StorkeyAgent.cc
+ * opencog/attention/StorkeyAgent.cc
  *
  * Copyright (C) 2008 by Singularity Institute for Artificial Intelligence
  * Written by Joel Pitt <joel@fruitionnz.com>
@@ -25,13 +25,14 @@
 #include <iomanip>
 
 #include <opencog/atomspace/AtomSpace.h>
-#include <opencog/atomspace/Link.h>
-#include <opencog/atomspace/SimpleTruthValue.h>
-#include <opencog/server/CogServer.h>
+#include <opencog/atoms/base/Link.h>
+#include <opencog/atoms/truthvalue/IndefiniteTruthValue.h>
+#include <opencog/atoms/truthvalue/SimpleTruthValue.h>
+#include <opencog/cogserver/server/CogServer.h>
 #include <opencog/util/Config.h>
 #include <opencog/util/Logger.h>
 
-#include <opencog/dynamics/attention/atom_types.h>
+#include <opencog/attention/atom_types.h>
 
 #include "HopfieldServer.h"
 
@@ -42,7 +43,7 @@ using namespace std;
 
 StorkeyAgent::StorkeyAgent(CogServer& cs) : Agent(cs)
 {
-    static const std::string defaultConfig[] = {
+    static const std::vector<std::string> defaultConfig = {
         "ECAN_CONVERT_LINKS","false",
         "",""
     };
@@ -101,7 +102,7 @@ float StorkeyAgent::h(int i, int j, w_t& w)
     float h_sum = 0.0f;
     for (int k=0; k < n; k++) {
         if (k == i || k == j) continue;
-        h_sum += ( w[i][k] * a.getNormalisedSTI(hs.hGrid[k],false) );
+        h_sum += ( w[i][k] * a.get_normalised_STI(hs.hGrid[k],false) );
     }
     return h_sum;
 }
@@ -113,7 +114,7 @@ float StorkeyAgent::h(int i, w_t& w)
     int n = w.size();
     float h_sum = 0.0f;
     for (int k=0; k < n; k++) {
-        h_sum += ( w[i][k] * a.getNormalisedSTI(hs.hGrid[k],false) );
+        h_sum += ( w[i][k] * a.get_normalised_STI(hs.hGrid[k],false) );
     }
     return h_sum;
 }
@@ -142,13 +143,13 @@ StorkeyAgent::w_t StorkeyAgent::getCurrentWeights()
             HandleSeq outgoing;
             outgoing.push_back(iHandle);
             outgoing.push_back(jHandle);
-            Handle heb = a.getHandle(SYMMETRIC_HEBBIAN_LINK,outgoing);
+            Handle heb = a.get_handle(SYMMETRIC_HEBBIAN_LINK,outgoing);
             if (heb != Handle::UNDEFINED) {
-                iRow[j] = a.getTV(heb)->getMean();
+                iRow[j] = heb->getTruthValue()->getMean();
             } else {
-                heb = a.getHandle(SYMMETRIC_INVERSE_HEBBIAN_LINK,outgoing);
+                heb = a.get_handle(SYMMETRIC_INVERSE_HEBBIAN_LINK,outgoing);
                 if (heb != Handle::UNDEFINED)
-                    iRow[j] = -(a.getTV(heb)->getMean());
+                    iRow[j] = -(heb->getTruthValue()->getMean());
                 else {
                     iRow[j] = 0.0f;
                 }
@@ -162,6 +163,28 @@ StorkeyAgent::w_t StorkeyAgent::getCurrentWeights()
         assert (w[i].size() == (unsigned int) n);
 #endif
     return w;
+}
+
+static void setMean(Handle h, float mean)
+{
+    TruthValuePtr oldtv(h->getTruthValue());
+    switch (oldtv->getType())
+    {
+        case SIMPLE_TRUTH_VALUE: {
+            TruthValuePtr newtv(SimpleTruthValue::createTV(mean, oldtv->getCount()));
+            h->setTruthValue(newtv);
+            break;
+        }
+        case INDEFINITE_TRUTH_VALUE: {
+	        OC_ASSERT(false, "Not implemented");
+            // IndefiniteTruthValuePtr newtv(IndefiniteTruthValue::createITV(oldtv));
+            // newtv->setMean(mean);
+            // h->setTruthValue(newtv);
+            break;
+        }
+        default:
+            throw InvalidParamException(TRACE_INFO, "Unsupported TV type");
+    }
 }
 
 void StorkeyAgent::setCurrentWeights(w_t& w)
@@ -178,24 +201,24 @@ void StorkeyAgent::setCurrentWeights(w_t& w)
             outgoing.push_back(iHandle);
             outgoing.push_back(jHandle);
 
-            Handle heb = a.getHandle(SYMMETRIC_HEBBIAN_LINK,outgoing);
+            Handle heb = a.get_handle(SYMMETRIC_HEBBIAN_LINK,outgoing);
             if (heb != Handle::UNDEFINED) {
                 if (w[i][j] < 0.0f) {
-                    a.removeAtom(heb, true);
-                    a.addLink(SYMMETRIC_INVERSE_HEBBIAN_LINK, outgoing,
+                    a.remove_atom(heb, true);
+                    a.add_link(SYMMETRIC_INVERSE_HEBBIAN_LINK, outgoing)->merge(
                             SimpleTruthValue::createTV(-w[i][j],100));
                 } else {
-                    a.setMean(heb,w[i][j]);
+                    setMean(heb, w[i][j]);
                 }
             } else {
-                heb = a.getHandle(SYMMETRIC_INVERSE_HEBBIAN_LINK,outgoing);
+                heb = a.get_handle(SYMMETRIC_INVERSE_HEBBIAN_LINK,outgoing);
                 if (heb != Handle::UNDEFINED) {
                     if (w[i][j] > 0.0f) {
-                        a.removeAtom(heb, true);
-                        a.addLink(SYMMETRIC_HEBBIAN_LINK, outgoing,
+                        a.remove_atom(heb, true);
+                        a.add_link(SYMMETRIC_HEBBIAN_LINK, outgoing)->merge(
                                 SimpleTruthValue::createTV(w[i][j],100));
                     } else {
-                        a.setMean(heb,-w[i][j]);
+                        setMean(heb, -w[i][j]);
                     }
                 }
                 // If both == Handle::UNDEFINED, then don't add weight. Link
@@ -241,18 +264,18 @@ void StorkeyAgent::storkeyUpdate()
             cout << " hGrid[j] = " << a.getNormalisedSTI(hs.hGrid[j],false);
             cout << " h_i = " << h(i,currentWeights);
             cout << " h_j = " << h(j,currentWeights) << endl; */
-            val += (1.0f/n) * a.getNormalisedSTI(hs.hGrid[i],false) *
-                a.getNormalisedSTI(hs.hGrid[j],false);
-            val -= (1.0f/n) * a.getNormalisedSTI(hs.hGrid[i],false) *
+            val += (1.0f/n) * a.get_normalised_STI(hs.hGrid[i],false) *
+                a.get_normalised_STI(hs.hGrid[j],false);
+            val -= (1.0f/n) * a.get_normalised_STI(hs.hGrid[i],false) *
                 h(j,currentWeights);
-            val -= (1.0f/n) * a.getNormalisedSTI(hs.hGrid[j],false) *
+            val -= (1.0f/n) * a.get_normalised_STI(hs.hGrid[j],false) *
                 h(i,currentWeights);
 //            cout << " after val = " << val << endl;
             iRow.push_back(val);
         }
         newWeights.push_back(iRow);
     }
-    if (getLogger()->isFineEnabled()) {
+    if (getLogger()->is_fine_enabled()) {
         getLogger()->fine("Weight matrix after Storkey update rule applied:");
         printWeights(newWeights);
     }
@@ -263,5 +286,3 @@ void StorkeyAgent::storkeyUpdate()
 
 
 }
-
-

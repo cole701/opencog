@@ -57,22 +57,22 @@ int main(int argc, char *argv[])
     (static_cast<HopfieldServer&>(server())).init(-1, -1, -1);
 
     /* setup logging */
-    logger().setPrintToStdoutFlag(config().get_bool("LOG_TO_STDOUT"));
+    logger().set_print_to_stdout_flag(config().get_bool("LOG_TO_STDOUT"));
     switch (o->verboseLevel) {
     case 1:
-        logger().setLevel(Logger::INFO);
-        logger().setPrintToStdoutFlag(true);
+        logger().set_level(Logger::INFO);
+        logger().set_print_to_stdout_flag(true);
         break;
     case 2:
-        logger().setLevel(Logger::DEBUG);
-        logger().setPrintToStdoutFlag(true);
+        logger().set_level(Logger::DEBUG);
+        logger().set_print_to_stdout_flag(true);
         break;
     case 3:
-        logger().setLevel(Logger::FINE);
-        logger().setPrintToStdoutFlag(true);
+        logger().set_level(Logger::FINE);
+        logger().set_print_to_stdout_flag(true);
         break;
     default:
-        logger().setLevel(Logger::WARN);
+        logger().set_level(Logger::WARN);
     }
 
     if (o->showConfigFlag) {
@@ -129,7 +129,7 @@ std::vector< Pattern > getCuePatterns(std::vector< Pattern > ps)
     } else {
         // otherwise, just copy imprint patterns.
         for (std::vector< Pattern >::iterator i = ps.begin();
-                i != ps.end(); i++) {
+                i != ps.end(); ++i) {
             // Cue patterns shouldn't be mutated unless cueGenerateOnce is set.
             cs.push_back( (*i) );
         }
@@ -138,7 +138,7 @@ std::vector< Pattern > getCuePatterns(std::vector< Pattern > ps)
     // (they won't be mutated later)
     if (o->cueGenerateOnce) {
         for (std::vector< Pattern >::iterator i = cs.begin();
-            i != cs.end(); i++) {
+            i != cs.end(); ++i) {
             (*i) = (*i).mutatePattern(o->cueErrorRate);
         }
     }
@@ -183,14 +183,14 @@ void testHopfieldNetworkPalimpsestNeighbours()
 
             foreach (bool b, stableBit) {
             //    cout << b << " ";
-                if (b) rSim += 1; 
+                if (b) rSim += 1;
             }
             //cout << endl;
             rSim /= stableBit.size();
             //cout << "rSim = " << rSim << endl;
 
             //logger().debug(" Similarity %.2f ( diff: %.2f )", rSim, rSim - patterns[j].hammingSimilarity(cuePatterns[j]));
-            
+
             if ( rSim < 1) {
                 break;
             }
@@ -262,7 +262,7 @@ void testHopfieldNetworkPalimpsest()
             cycleResults.push_back(rSim);
 
             logger().debug(" Similarity %.2f ( diff: %.2f )", rSim, rSim - patterns[j].hammingSimilarity(cuePatterns[j]));
-            
+
             if ( (rSim * 100) < (100 - o->palimpsestTolerance) ) break;
             memory++;
 
@@ -399,4 +399,3 @@ void testHopfieldNetworkRolling()
     }
 
 }
-

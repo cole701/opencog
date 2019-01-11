@@ -12,8 +12,8 @@
 #define _OPENCOG_SENSE_CACHE_H
 
 #include <opencog/atomspace/AtomSpace.h>
-#include <opencog/atomspace/Link.h>
-#include <opencog/atomspace/TruthValue.h>
+#include <opencog/atoms/base/Link.h>
+#include <opencog/atoms/truthvalue/TruthValue.h>
 
 namespace opencog {
 
@@ -23,15 +23,15 @@ class SenseCache
 		AtomSpace *atom_space;
 		Handle match_sense;
 		Handle found_link;
-		bool find_sense(Handle, Handle);
+		bool find_sense(const Handle&, const Handle&);
 
 	public:
 		SenseCache(void);
 		~SenseCache();
 
 		void set_atom_space(AtomSpace *);
-		TruthValuePtr similarity(Handle, Handle);
-		void set_similarity(Handle, Handle, TruthValuePtr);
+		TruthValuePtr similarity(const Handle&, const Handle&);
+		void set_similarity(const Handle&, const Handle&, TruthValuePtr);
 };
 
 } // namespace opencog

@@ -1,11 +1,4 @@
-INSTALL (FILES
-	apply.scm
-	debug.scm
-	file-utils.scm
-	example-dbi.scm
-	persistence.scm
-	utilities.scm
-	DESTINATION "${DATADIR}/scm"
+ADD_GUILE_MODULE (FILES
+    atom-types.scm
+    MODULE_DESTINATION "${GUILE_SITE_DIR}/opencog/atom-types"
 )
-# No CMakeLists.txt in dir:
-#ADD_SUBDIRECTORY (wires)

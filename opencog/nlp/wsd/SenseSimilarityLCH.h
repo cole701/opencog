@@ -11,7 +11,7 @@
 #ifndef _OPENCOG_SENSE_SIMILARITY_LCH_H
 #define _OPENCOG_SENSE_SIMILARITY_LCH_H
 
-#include <opencog/atomspace/SimpleTruthValue.h>
+#include <opencog/atoms/truthvalue/SimpleTruthValue.h>
 #include <opencog/nlp/wsd/SenseSimilarity.h>
 
 namespace opencog {
@@ -29,16 +29,14 @@ class SenseSimilarityLCH :
 		int follow_holo_cnt;
 		int max_follow_holo;
 		Handle join_candidate; // aka least common subsumer
-		bool up_first(Handle);
-		bool up_second(Handle);
-
-        AtomSpace *as;
+		bool up_first(const Handle&);
+		bool up_second(const Handle&);
 
 	public:
-		SenseSimilarityLCH(AtomSpace* _as);
+		SenseSimilarityLCH();
 		virtual ~SenseSimilarityLCH();
 
-		virtual SimpleTruthValuePtr similarity(Handle, Handle);
+		virtual SimpleTruthValuePtr similarity(const Handle&, const Handle&);
 };
 
 } // namespace opencog

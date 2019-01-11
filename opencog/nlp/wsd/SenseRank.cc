@@ -13,11 +13,11 @@
 #include <math.h>
 
 #include <opencog/util/platform.h>
-#include <opencog/atomspace/Node.h>
-#include <opencog/atomspace/CountTruthValue.h>
-#include <opencog/atomspace/TruthValue.h>
+#include <opencog/atoms/base/Node.h>
+#include <opencog/atoms/truthvalue/CountTruthValue.h>
+#include <opencog/atoms/truthvalue/TruthValue.h>
 #include <opencog/nlp/wsd/ForeachWord.h>
-#include <opencog/server/CogServer.h>
+#include <opencog/cogserver/server/CogServer.h>
 #include <opencog/util/Logger.h>
 
 using namespace opencog;
@@ -54,7 +54,7 @@ SenseRank::~SenseRank()
  * This routine returns after the graph, as a whole, has converged
  * to a stationary state.
  */
-void SenseRank::rank_sentence(Handle h)
+void SenseRank::rank_sentence(const Handle& h)
 {
 #ifdef DEBUG
 	printf ("; SenseRank rank sentence %x\n", h); 
@@ -66,11 +66,11 @@ void SenseRank::rank_document(const std::deque<Handle> &parse_list)
 {
 	// Iterate over list of parses making up a "document"
 	std::deque<Handle>::const_iterator i;
-	for (i = parse_list.begin(); i != parse_list.end(); i++)
+	for (i = parse_list.begin(); i != parse_list.end(); ++i)
 	{
 		init_parse(*i);
 	}
-	for (i = parse_list.begin(); i != parse_list.end(); i++)
+	for (i = parse_list.begin(); i != parse_list.end(); ++i)
 	{
 #ifdef DEBUG
 	printf ("; SenseRank document sentence parse %x\n", (Handle) *i); 
@@ -83,14 +83,14 @@ void SenseRank::rank_document(const std::deque<Handle> &parse_list)
  * Assign equal probability to all senses of all words.
  * Initially, all senses are equi-probabile.
  */
-bool SenseRank::init_word(Handle h)
+bool SenseRank::init_word(const Handle& h)
 {
 	foreach_word_sense_of_inst(h, &SenseRank::init_senses, this);
 	return false;
 }
 
-bool SenseRank::init_senses(Handle word_sense_h,
-                            Handle sense_link_h)
+bool SenseRank::init_senses(const Handle& word_sense_h,
+                            const Handle& sense_link_h)
 {
 	TruthValuePtr ctv(CountTruthValue::createTV(1.0f, 0.0f, 1.0f));
 	sense_link_h->setTruthValue(ctv);
@@ -100,7 +100,7 @@ bool SenseRank::init_senses(Handle word_sense_h,
 /**
  * Assign initial probabilities to each word sense.
  */ 
-void SenseRank::init_parse(Handle h)
+void SenseRank::init_parse(const Handle& h)
 {
 	converge = 1.0;
 	foreach_word_instance(h, &SenseRank::init_word, this);
@@ -113,7 +113,7 @@ void SenseRank::init_parse(Handle h)
  * that fail to mix well. So, just to make sure things are fair, we will
  * iterate for a while, starting at every sense of every word in the parse.
  */
-void SenseRank::rank_parse(Handle h)
+void SenseRank::rank_parse(const Handle& h)
 {
 #ifdef DEBUG
 	printf ("; SenseRank rank parse %x\n", h); 
@@ -121,7 +121,7 @@ void SenseRank::rank_parse(Handle h)
 	foreach_word_instance(h, &SenseRank::start_word, this);
 }
 
-bool SenseRank::rank_parse_f(Handle h)
+bool SenseRank::rank_parse_f(const Handle& h)
 {
 	rank_parse(h);
 	return false;
@@ -130,21 +130,20 @@ bool SenseRank::rank_parse_f(Handle h)
 /**
  * For every word sense, try walking the graph from there. 
  */
-bool SenseRank::start_word(Handle h)
+bool SenseRank::start_word(const Handle& h)
 {
 #ifdef DEBUG
-	printf ("; SenseRank: start at word %s\n", h->getName().c_str());
+	printf ("; SenseRank: start at word %s\n", h->get_name().c_str());
 #endif
 	foreach_word_sense_of_inst(h, &SenseRank::start_sense, this);
 	return false;
 }
 
-void SenseRank::log_bad_sense(Handle word_sense_h, const std::string& msg,
+void SenseRank::log_bad_sense(const Handle& word_sense_h, const std::string& msg,
         bool is_error)
 {
     const char *s = "";
-    NodePtr n(NodeCast(word_sense_h));
-    if (n) s = n->getName().c_str();
+    if (word_sense_h->is_node()) s = word_sense_h->get_name().c_str();
     if (is_error) logger().error("SenseRank: %s: %s", msg.c_str(), s);
     else logger().info("SenseRank: %s: %s", msg.c_str(), s);
 }
@@ -155,11 +154,11 @@ void SenseRank::log_bad_sense(Handle word_sense_h, const std::string& msg,
  * page-rank algo as we walk. Stop iterating when all values
  * are sufficiently converged.
  */
-bool SenseRank::start_sense(Handle word_sense_h,
-                            Handle sense_link_h)
+bool SenseRank::start_sense(const Handle& word_sense_h,
+                            const Handle& sense_link_h)
 {
 #ifdef DEBUG
-	printf ("; SenseRank start at %s\n", NodeCast(word_sense_h)->getName().c_str());
+	printf ("; SenseRank start at %s\n", word_sense_h->get_name().c_str());
 #endif
 
 	if (Handle::UNDEFINED == sense_link_h) {
@@ -185,10 +184,11 @@ bool SenseRank::start_sense(Handle word_sense_h,
 	}
 
 	// Walk randomly over the connected component 
+	Handle slink(sense_link_h);
 	do
 	{
-		rank_sense(sense_link_h);
-		sense_link_h = pick_random_edge(sense_link_h);
+		rank_sense(slink);
+		slink = pick_random_edge(slink);
 	} while (convergence_limit < converge);
 
 	return false;
@@ -226,19 +226,19 @@ bool SenseRank::start_sense(Handle word_sense_h,
  * The quantity t_ab is computed inside of outer_sum(), where all values
  * of b are summed over.
  */
-void SenseRank::rank_sense(Handle sense_link_h)
+void SenseRank::rank_sense(const Handle& sense_link_h)
 {
 	rank_sum = 0.0;
 	foreach_sense_edge(sense_link_h, &SenseRank::outer_sum, this);
 	rank_sum *= damping_factor;
 	rank_sum += 1.0-damping_factor;
 
-	double old_rank = sense_link_h->getTruthValue()->getCount();
+	double old_rank = sense_link_h->getTruthValue()->get_count();
 
 #ifdef DEBUG
-	std::vector<Handle> oset = LinkCast(sense_link_h)->getOutgoingSet();
+	HandleSeq oset = sense_link_h->getOutgoingSet();
 	printf ("; SenseRank: sense %s was %g new %g delta=%g\n",
-	        NodePtr(oset[1])->getName().c_str(),
+	        oset[1]->get_name().c_str(),
            old_rank, rank_sum, fabs(rank_sum - old_rank));
 #endif
 
@@ -255,10 +255,10 @@ void SenseRank::rank_sense(Handle sense_link_h)
 /**
  * Perform the outermost sum of the page-rank algorithm.
  */
-bool SenseRank::outer_sum(Handle sense_b_h, Handle hedge)
+bool SenseRank::outer_sum(const Handle& sense_b_h, const Handle& hedge)
 {
 	// Get the weight of the edge
-	double weight_ab = hedge->getTruthValue()->getMean();
+	double weight_ab = hedge->getTruthValue()->get_mean();
 
 	// Normalize the weight_ab summing over all c's weight_cb
 	// The sum over 'c' runs over all edges pointing to link "b"
@@ -267,7 +267,7 @@ bool SenseRank::outer_sum(Handle sense_b_h, Handle hedge)
 	double t_ab = weight_ab / edge_sum; 
 
 	// Get the word-sense probability
-	double p_b = sense_b_h->getTruthValue()->getCount();
+	double p_b = sense_b_h->getTruthValue()->get_count();
 	double weight = t_ab * p_b;
 
 	rank_sum += weight;
@@ -280,10 +280,10 @@ bool SenseRank::outer_sum(Handle sense_b_h, Handle hedge)
  * This sum simply computes the normalization that will be used to
  * adjust an edge weight. 
  */
-bool SenseRank::inner_sum(Handle sense_c_h, Handle hedge_bc)
+bool SenseRank::inner_sum(const Handle& sense_c_h, const Handle& hedge_bc)
 {
 	next_sense = sense_c_h;
-	double weight_to_b = hedge_bc->getTruthValue()->getMean();
+	double weight_to_b = hedge_bc->getTruthValue()->get_mean();
 	edge_sum += weight_to_b;
 	// printf("inner sum h=%ld, %g %g\n", h, weight_to_b, edge_sum);
 	return false;
@@ -293,11 +293,11 @@ bool SenseRank::inner_sum(Handle sense_c_h, Handle hedge_bc)
  * Look at each edge in turn, until the sum of edge weights
  * exceeds a random number.
  */
-bool SenseRank::random_sum(Handle h, Handle hedge)
+bool SenseRank::random_sum(const Handle& h, const Handle& hedge)
 {
 	next_sense = h;
 
-	double weight_to_b = hedge->getTruthValue()->getMean();
+	double weight_to_b = hedge->getTruthValue()->get_mean();
 	edge_sum += weight_to_b;
 	if (randy < edge_sum) {
 		return true; // we are done, we found our edge.
@@ -308,7 +308,7 @@ bool SenseRank::random_sum(Handle h, Handle hedge)
 /**
  * Pick a random edge from the set of edges.
  */
-Handle SenseRank::pick_random_edge(Handle h)
+Handle SenseRank::pick_random_edge(const Handle& h)
 {
 	// Get the total weight of the edges
 	edge_sum = 0.0;

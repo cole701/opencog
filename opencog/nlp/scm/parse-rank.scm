@@ -1,4 +1,3 @@
-scm
 ;
 ; parse-rank.scm
 ;
@@ -200,9 +199,9 @@ scm
 	; in the sentence. Get those (filter on WordInstanceNode in order
 	; to ignore the SentenceNode), then map these to word nodes, 
 	; and then tack them onto our list.
-	(cog-filter-map 'WordInstanceNode 
-		(lambda (x) (map-word-node add-to-word-list x))
-		(cog-outgoing-set sentence)
+	(for-each 
+		(lambda (x) (add-to-word-list (word-inst-get-word x)))
+		(cog-filter 'WordInstanceNode (cog-outgoing-set sentence))
 	)
 
 	; (display word-list)
@@ -238,7 +237,7 @@ scm
 	)
 
 	; Invoke procedure 'proc' on each link-grammar link.
-	; Expects as input a ParseAnchor (node anchoring a parse)
+	; Expects as input a ParseNode (node anchoring a parse)
 	; Returns whatever proc returns, as an or-map.
 	(define (map-links proc parse-inst)
    	(cog-map-chase-link-dbg 'LinkGrammarLinkageLink 'EvaluationLink
@@ -293,16 +292,15 @@ scm
 	)
 
 	; Get the mutual information for the various word-pairs
-	(cog-filter-map 'SentenceLink get-mi (cog-incoming-set sent-node))
+	(for-each get-mi (cog-filter 'SentenceLink (cog-incoming-set sent-node)))
 
 	; (display mi-edge-list) (newline)
 
 	; Score each of the parses in the sentence
-	(map-parses score-one-parse sent-node)
+	(for-each score-one-parse (sentence-get-parses sent-node))
 	#f
 )
 
 ; Loop over all atoms of type SentenceNode, processing
 ; handing them to 'score sentence' for scoring.
 (cog-map-type score-sentence 'SentenceNode)
-

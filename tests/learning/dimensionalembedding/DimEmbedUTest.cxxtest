@@ -24,11 +24,11 @@
 
 #include <cxxtest/TestSuite.h>
 
+#include <opencog/atoms/base/Node.h>
+#include <opencog/atoms/truthvalue/SimpleTruthValue.h>
+
 #include <opencog/atomspace/AtomSpace.h>
-#include <opencog/atomspace/Node.h>
-#include <opencog/atomspace/SimpleTruthValue.h>
-#include <opencog/atomspace/ClassServer.h>
-#include <opencog/server/CogServer.h>
+#include <opencog/cogserver/server/CogServer.h>
 
 #include <opencog/learning/dimensionalembedding/DimEmbedModule.h>
 
@@ -40,15 +40,15 @@ public:
     void link(AtomSpace* as, Handle h1, Handle h2,
               double strength, double confidence)
     {
-        as->addLink(SIMILARITY_LINK, h1, h2,
-                    SimpleTruthValue::createTV(strength, SimpleTruthValue::confidenceToCount(confidence)));
+        Handle h = as->add_link(SIMILARITY_LINK, h1, h2);
+        h->setTruthValue(SimpleTruthValue::createTV(strength, confidence));
     }
 
     void inhLink(AtomSpace* as, Handle h1, Handle h2,
                  double strength, double confidence)
     {
-        as->addLink(INHERITANCE_LINK, h1, h2,
-                    SimpleTruthValue::createTV(strength, SimpleTruthValue::confidenceToCount(confidence)));
+        Handle h = as->add_link(INHERITANCE_LINK, h1, h2);
+        h->setTruthValue(SimpleTruthValue::createTV(strength, confidence));
     }
 
     void testMisc()
@@ -57,10 +57,14 @@ public:
         AtomSpace* atomSpace = &cs.getAtomSpace();
         atomSpace->clear();
         DimEmbedModule dimEmbed = DimEmbedModule(cs);
-        Handle h1 = atomSpace->addNode(CONCEPT_NODE, "dog1", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h2 = atomSpace->addNode(CONCEPT_NODE, "dog2", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h3 = atomSpace->addNode(CONCEPT_NODE, "dog3", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h4 = atomSpace->addNode(CONCEPT_NODE, "dog4", SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h1 = atomSpace->add_node(CONCEPT_NODE, "dog1");
+        h1->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h2 = atomSpace->add_node(CONCEPT_NODE, "dog2");
+        h2->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h3 = atomSpace->add_node(CONCEPT_NODE, "dog3");
+        h3->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h4 = atomSpace->add_node(CONCEPT_NODE, "dog4");
+        h4->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
 
         link(atomSpace, h1, h2, 0.5, 1.0);
         link(atomSpace, h1, h3, 0.7, 1.0);
@@ -74,8 +78,10 @@ public:
 
         //add some more atoms after embedding in such a way that they should
         //not affect the tests we do later...
-        Handle d1 = atomSpace->addNode(CONCEPT_NODE, "distraction1", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle d2 = atomSpace->addNode(CONCEPT_NODE, "distraction2", SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle d1 = atomSpace->add_node(CONCEPT_NODE, "distraction1");
+        d1->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle d2 = atomSpace->add_node(CONCEPT_NODE, "distraction2");
+        d2->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
         link(atomSpace, d1, d2, 0.7, 0.9);
         link(atomSpace, d1, h1, 1.0, 0.9);
         inhLink(atomSpace, h1, h3, .9, .9);
@@ -107,7 +113,8 @@ public:
                 TS_ASSERT_DELTA(dist,dists[i][j],.000001);
             }
         }
-        Handle h5 = atomSpace->addNode(CONCEPT_NODE, "dog5", SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h5 = atomSpace->add_node(CONCEPT_NODE, "dog5");
+        h5->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
         //h5 is unconnected, so its embedding should be (0,0,0,0)
         TS_ASSERT_DELTA(dimEmbed.euclidDist(h5,h1,SIMILARITY_LINK),
                         1.596871942267,
@@ -122,8 +129,8 @@ public:
                         1.5522242106,
                         .000001);
 
-        link(atomSpace,h1,h5,.5,1.0);
-        link(atomSpace,h3,h5,.6,1.0);
+        link(atomSpace, h1, h5, 0.5, 1.0);
+        link(atomSpace, h3, h5, 0.6, 1.0);
         //h1:(1, .5, .7, .9)
         //h3:(.7, .35, 1, .63)
         //So h5 should be some permutation of
@@ -157,13 +164,20 @@ public:
         atomSpace->clear();
         DimEmbedModule dimEmbed = DimEmbedModule(cs);
         
-        Handle h1 = atomSpace->addNode(CONCEPT_NODE, "1", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h2 = atomSpace->addNode(CONCEPT_NODE, "2", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h3 = atomSpace->addNode(CONCEPT_NODE, "3", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h4 = atomSpace->addNode(CONCEPT_NODE, "4", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h5 = atomSpace->addNode(CONCEPT_NODE, "5", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h6 = atomSpace->addNode(CONCEPT_NODE, "6", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h7 = atomSpace->addNode(CONCEPT_NODE, "7", SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h1 = atomSpace->add_node(CONCEPT_NODE, "1");
+        h1->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h2 = atomSpace->add_node(CONCEPT_NODE, "2");
+        h2->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h3 = atomSpace->add_node(CONCEPT_NODE, "3");
+        h3->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h4 = atomSpace->add_node(CONCEPT_NODE, "4");
+        h4->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h5 = atomSpace->add_node(CONCEPT_NODE, "5");
+        h5->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h6 = atomSpace->add_node(CONCEPT_NODE, "6");
+        h6->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h7 = atomSpace->add_node(CONCEPT_NODE, "7");
+        h7->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
         
         link(atomSpace, h1, h2, 0.5, 1.0);
         link(atomSpace, h1, h3, 0.5, 0.6);
@@ -183,10 +197,10 @@ public:
         Handle handles[7] = {h1, h2, h3, h4, h5, h6, h7};
         dimEmbed.embedAtomSpace(SIMILARITY_LINK, 7);
         TS_ASSERT(dimEmbed.isEmbedded(SIMILARITY_LINK));
-        //Every node is a pivot, so every node should be nondisposable
-        for(int i=0;i<7;i++) {
-            TS_ASSERT(atomSpace->getVLTI(handles[i])
-                      !=AttentionValue::DISPOSABLE);
+        // Every node is a pivot, so every node should be nondisposable
+        for (int i=0;i<7;i++) {
+            TS_ASSERT(get_vlti(handles[i])
+                     != AttentionValue::DISPOSABLE);
         }
         //dimEmbed.logAtomEmbedding(SIMILARITY_LINK);
         //We have no guarantee on the order that the pivots
@@ -214,11 +228,11 @@ public:
             };
         
         double dist;
-        for(int i=0;i<7;i++){
-            for(int j=0;j<7;j++){
+        for (int i=0; i<7; i++) {
+            for (int j=0; j<7; j++) {
                 dist = dimEmbed.euclidDist(handles[i],
-                                           handles[j]
-                                           ,SIMILARITY_LINK);
+                                           handles[j],
+                                           SIMILARITY_LINK);
                 TS_ASSERT_DELTA(dist,dists[i][j],.00001);
             }
         }
@@ -226,15 +240,15 @@ public:
         //In order from nearest-to-h1 to farthest-from-h1, we have
         //h1,h4,h7,h5,h2=h3,h6
         Handle h1NN[7] = {h1,h4,h7,h5,h2,h3,h6};
-        for(int i=0;i<7;i++) {
+        for (int i=0; i<7; i++) {
             if(i==4) continue;//We don't know whether it'd return h2 or h3,
                               //but either would be correct...
-            HandleSeq kNN=dimEmbed.kNearestNeighbors(h1,SIMILARITY_LINK,i+1);
+            HandleSeq kNN = dimEmbed.kNearestNeighbors(h1,SIMILARITY_LINK,i+1);
             TS_ASSERT_EQUALS(kNN.size(),i+1);
-            for(int j=0;j<i+1;j++) {
+            for (int j=0; j<i+1; j++) {
                 bool found=false;
-                for(HandleSeq::iterator it=kNN.begin();it!=kNN.end();it++) {
-                    if(*it==h1NN[j]) found=true;
+                for (HandleSeq::iterator it=kNN.begin(); it != kNN.end(); it++) {
+                    if (*it == h1NN[j]) found=true;
                 }
                 TS_ASSERT(found);
             }
@@ -298,9 +312,9 @@ public:
         dimEmbed.clearEmbedding(SIMILARITY_LINK);
         //We cleared the embedding, so the VLTI of each pivot should be back
         //to normal
-        for(int i=0;i<7;i++) {
-            TS_ASSERT(atomSpace->getVLTI(handles[i])
-                      ==AttentionValue::DISPOSABLE);
+        for (int i=0; i<7; i++) {
+            TS_ASSERT(get_vlti(handles[i])
+                      == AttentionValue::DISPOSABLE);
         }
     }
 
@@ -311,14 +325,22 @@ public:
         atomSpace->clear();
         DimEmbedModule dimEmbed = DimEmbedModule(cs);
         
-        Handle h1 = atomSpace->addNode(CONCEPT_NODE, "1", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h2 = atomSpace->addNode(CONCEPT_NODE, "2", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h3 = atomSpace->addNode(CONCEPT_NODE, "3", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h4 = atomSpace->addNode(CONCEPT_NODE, "4", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h5 = atomSpace->addNode(CONCEPT_NODE, "5", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h6 = atomSpace->addNode(CONCEPT_NODE, "6", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h7 = atomSpace->addNode(CONCEPT_NODE, "7", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h8 = atomSpace->addNode(CONCEPT_NODE, "8", SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h1 = atomSpace->add_node(CONCEPT_NODE, "1");
+        h1->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h2 = atomSpace->add_node(CONCEPT_NODE, "2");
+        h2->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h3 = atomSpace->add_node(CONCEPT_NODE, "3");
+        h3->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h4 = atomSpace->add_node(CONCEPT_NODE, "4");
+        h4->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h5 = atomSpace->add_node(CONCEPT_NODE, "5");
+        h5->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h6 = atomSpace->add_node(CONCEPT_NODE, "6");
+        h6->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h7 = atomSpace->add_node(CONCEPT_NODE, "7");
+        h7->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h8 = atomSpace->add_node(CONCEPT_NODE, "8");
+        h8->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
 
         link(atomSpace, h1, h2, 0.8, 1.0);
         link(atomSpace, h1, h3, 0.8, 1.0);
@@ -446,21 +468,26 @@ public:
         atomSpace->clear();
         DimEmbedModule dimEmbed = DimEmbedModule(cs);
 
-        Handle h1 = atomSpace->addNode(CONCEPT_NODE, "dog1", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h2 = atomSpace->addNode(CONCEPT_NODE, "dog2", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h3 = atomSpace->addNode(CONCEPT_NODE, "dog3", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h4 = atomSpace->addNode(CONCEPT_NODE, "dog4", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h5 = atomSpace->addNode(CONCEPT_NODE, "dog5", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle h6 = atomSpace->addNode(CONCEPT_NODE, "dog6", SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h1 = atomSpace->add_node(CONCEPT_NODE, "dog1");
+        h1->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h2 = atomSpace->add_node(CONCEPT_NODE, "dog2");
+        h2->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h3 = atomSpace->add_node(CONCEPT_NODE, "dog3");
+        h3->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h4 = atomSpace->add_node(CONCEPT_NODE, "dog4");
+        h4->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h5 = atomSpace->add_node(CONCEPT_NODE, "dog5");
+        h5->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h6 = atomSpace->add_node(CONCEPT_NODE, "dog6");
+        h6->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
 
         inhLink(atomSpace, h1, h2, 0.5, 1.0);
-        atomSpace->addLink(INHERITANCE_LINK, h1, h3, h4, h5,
-                           SimpleTruthValue::createTV(0.5, SimpleTruthValue::confidenceToCount(0.6)));
+        atomSpace->add_link(INHERITANCE_LINK, h1, h3, h4, h5)->setTruthValue(SimpleTruthValue::createTV(0.5, 0.6));
         inhLink(atomSpace, h2, h3, 0.2, 1.0);
         inhLink(atomSpace, h2, h5, 1.0, 0.7);
         inhLink(atomSpace, h3, h2, 0.8, 1.0);
-        atomSpace->addLink(INHERITANCE_LINK, h3, h4, h5,
-                           SimpleTruthValue::createTV(0.4, SimpleTruthValue::confidenceToCount(1.0)));
+        atomSpace->add_link(INHERITANCE_LINK, h3, h4, h5)->setTruthValue(
+                           SimpleTruthValue::createTV(0.4, 1.0));
         inhLink(atomSpace, h4, h2, 0.6, 1.0);
         inhLink(atomSpace, h4, h5, 0.2, 1.0);
         inhLink(atomSpace, h4, h2, 0.6, 1.0);
@@ -468,8 +495,10 @@ public:
         dimEmbed.embedAtomSpace(INHERITANCE_LINK, 6);
         //add some more atoms after embedding in such a way that they should
         //not affect the tests we do later...
-        Handle d1 = atomSpace->addNode(CONCEPT_NODE, "distraction1", SimpleTruthValue::createTV(0.001f, 0.00001f));
-        Handle d2 = atomSpace->addNode(CONCEPT_NODE, "distraction2", SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle d1 = atomSpace->add_node(CONCEPT_NODE, "distraction1");
+        d1->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle d2 = atomSpace->add_node(CONCEPT_NODE, "distraction2");
+        d2->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
         link(atomSpace, h1, h2, 0.7, 0.9);
         link(atomSpace, h6, h3, 1.0, 0.9);
         inhLink(atomSpace, d1, d2, .9, .9);
@@ -523,7 +552,8 @@ public:
                 TS_ASSERT_DELTA(dist,distsTrans[i][j],.000001);                
             }
         }
-        Handle h7 = atomSpace->addNode(CONCEPT_NODE, "dog7", SimpleTruthValue::createTV(0.001f, 0.00001f));
+        Handle h7 = atomSpace->add_node(CONCEPT_NODE, "dog7");
+        h7->setTruthValue(SimpleTruthValue::createTV(0.001f, 0.00001f));
         //h7 is unconnected, so its embedding should be (0,0,0,0)
         TS_ASSERT_DELTA(dimEmbed.euclidDist(h7,h1,INHERITANCE_LINK,true),
                         1.24599357944,
@@ -591,7 +621,8 @@ public:
         double dists7in [6] = {1.05242576935, 0.619758017294, 1.03619496235, 0.967935948294, 0.698498389404, 1.1764777941};
         double dists5in [6] = {1.27510783858, 0.823771813065, 1.24217551095, 1.19339850846, 0.0, 1.43714995738};
         double dists7out [6] = {1.0842624221100721, 1.0957303500405564, 0.90256578707593382, 0.988445749649418, 0.72499999999999998, 1.2351619327035626};
-        for(int i=0;i<6;i++) {
+
+        for (int i=0; i<6; i++) {
             TS_ASSERT_DELTA(dimEmbed.euclidDist(h7,handles[i],INHERITANCE_LINK,true),
                             dists7in[i],
                             .000001);
