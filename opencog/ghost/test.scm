@@ -200,21 +200,21 @@
       "TV = ~a\n"
       "Satisfiability: ~a\n"
       "Time last executed: ~a\n"
-      "Next responder: ~a\n"
+      "Next reactive rule: ~a\n"
       "Next rejoinder: ~a\n")
       (map cog-av rule)
       (map cog-tv rule)
       (every
-        (lambda (x) (> (cdr (assoc 'mean (cog-tv->alist (cog-evaluate! x)))) 0))
+        (lambda (x) (> (cog-tv-mean (cog-evaluate! x)) 0))
         (psi-get-context (car rule)))
       (if (null? (cog-value (car rule) ghost-time-last-executed))
         "N.A."
-        (strftime "%D %T" (localtime (inexact->exact
-          (car (cog-value->list (cog-value (car rule) ghost-time-last-executed)))))))
-      (if (null? (cog-value (car rule) ghost-next-responder))
+        (strftime "%D %T" (localtime (inexact->exact (round
+          (car (cog-value->list (cog-value (car rule) ghost-time-last-executed))))))))
+      (if (null? (cog-value (car rule) ghost-next-reactive-rule))
         (list)
         (append-map psi-rule-alias
-          (cog-value->list (cog-value (car rule) ghost-next-responder))))
+          (cog-value->list (cog-value (car rule) ghost-next-reactive-rule))))
       (if (null? (cog-value (car rule) ghost-next-rejoinder))
         (list)
         (append-map psi-rule-alias
@@ -321,13 +321,13 @@
   ghost-set-rep-sti-boost VAL
 
   Set how much of a default stimulus will be given to
-  the next responder after triggering the previous
+  the next reactive rule after triggering the previous
   one in the sequence.
 "
   (if (number? VAL)
-    (set! responder-sti-boost VAL)
+    (set! reactive-rule-sti-boost VAL)
     (cog-logger-warn ghost-logger
-      "The responder STI boost has to be a numberic value!"))
+      "The reactive rule STI boost has to be a numberic value!"))
 )
 
 ; ----------

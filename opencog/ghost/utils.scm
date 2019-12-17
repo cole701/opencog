@@ -36,7 +36,7 @@
   Helper function to find the maximum number of words CONCEPT has.
 "
   (define c (cog-outgoing-set (cog-execute!
-              (Get (Reference (Variable "$x") CONCEPT)))))
+              (Get (Member (Variable "$x") CONCEPT)))))
 
   (if (null? c)
       -1  ; This may happen if the concept is not yet defined in the system...
@@ -141,7 +141,13 @@
     (List SENT
       (List (map
         (lambda (w)
-          (WordNode (string-downcase (cog-name w))))
+          (define word-str (cog-name w))
+          (define wordnode-dc (WordNode (string-downcase word-str)))
+          (cog-set-value!
+            wordnode-dc
+            ghost-word-original
+            (WordNode word-str))
+          wordnode-dc)
         final-word-seq)))))
 
 ; ----------
@@ -198,7 +204,7 @@
             ((eq? 'VariableNode (cog-type g)) '())
             (else (list g))))
     (cog-outgoing-set
-      (cog-execute! (Get (Reference (Variable "$x") CONCEPT))))))
+      (cog-execute! (Get (Member (Variable "$x") CONCEPT))))))
 
 ; ----------
 (define (is-member? GRD MEMB)
@@ -284,9 +290,13 @@
 ; ----------
 (define (get-rejoinder-level TYPE)
 "
-  Return the rejoinder level, e.g. a = level 1, b = level 2, and so on...
+  Return the rejoinder level, e.g. j1 = level 1, j2 = level 2, and so on...
 "
-  (- (char->integer TYPE) 96))
+  (if (string-prefix? "j" TYPE)
+    (string->number (string-trim TYPE (lambda (c) (eqv? c #\j))))
+    ; For backward compatibility,
+    ; e.g. a = level 1, b = level 2, and so on...
+    (- (char->integer (string-ref TYPE 0)) 96)))
 
 ; ----------
 (define (get-related-psi-rules ATOM)
@@ -340,4 +350,13 @@
   (or (member (string-downcase WORD) lst)
       (and (string-suffix? "." WORD)
            (member (string-downcase (car (string-split WORD #\.))) lst)))
+)
+
+; ----------
+(define (current-time-us)
+"
+  Returns the current-time in microseconds.
+"
+  (define t (gettimeofday))
+  (+ (car t) (/ (cdr t) 1000000))
 )
